@@ -1,0 +1,43 @@
+name: Validar salida hola.js
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Ejecutar hola.js y validar salida
+        id: validar
+        run: |
+          salida=$(node hola.js)
+          echo "Salida: $salida"
+
+          if [ "$salida" != "hola mundo" ]; then
+            echo "Resultado incorrecto"
+            echo "ok=false" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "Resultado correcto"
+            echo "ok=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notificar fallo
+        if: failure()
+        run: |
+          curl -X POST https://ntfy.sh/devops-itla \
+            -H "Title: Falla pipeline hola.js" \
+            -H "Priority: urgent" \
+            -d "La validación de hola.js falló en el workflow de GitHub Actions"
